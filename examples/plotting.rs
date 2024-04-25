@@ -10,7 +10,7 @@ const WINDOW_WIDTH: f32 = 1280.0;
 const WINDOW_HEIGHT: f32 = 720.0;
 fn window_conf() -> Conf {
     Conf {
-        window_title: "Template".to_owned(),
+        window_title: "Plotting Example".to_owned(),
         sample_count: 16,
         window_width: WINDOW_WIDTH as i32,
         window_height: WINDOW_HEIGHT as i32,
@@ -92,8 +92,10 @@ async fn main() {
             },
         });
         graph.draw_axes();
+
         graph.plot_line_vec(&sine, 3., PURPLE);
         graph.plot_line_xy(&x_sine, &y_sine, 3., BLUE);
+
         let pt = graph.graph_to_world(vec2(-0.5, -0.5));
         draw_circle(pt.x, pt.y, 10., ORANGE);
         graph.plot_pt_vec(&vec2(0.2, 0.2), 10., RED);
