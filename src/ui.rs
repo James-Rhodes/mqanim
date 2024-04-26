@@ -112,3 +112,152 @@ impl Slider {
         );
     }
 }
+
+pub enum ButtonShape {
+    Circle { radius: f32 },
+    Rectangle { width: f32, height: f32 },
+}
+impl ButtonShape {
+    pub fn intersects(&self, center_pos: Vec2, pt: Vec2) -> bool {
+        match self {
+            ButtonShape::Circle { radius } => {
+                if center_pos.distance_squared(pt) < radius * radius {
+                    return true;
+                }
+
+                false
+            }
+            ButtonShape::Rectangle { width, height } => {
+                if pt.x >= center_pos.x - width / 2.
+                    && pt.x <= center_pos.x + width / 2.
+                    && pt.y >= center_pos.y - height / 2.
+                    && pt.y <= center_pos.y + height / 2.
+                {
+                    return true;
+                }
+
+                false
+            }
+        }
+    }
+}
+pub struct ButtonStyle {
+    pub color: Color,
+    pub inset_color: Color,
+    pub hover_color: Color,
+    pub hover_inset_color: Color,
+    pub pushed_color: Color,
+    pub pushed_inset_color: Color,
+    pub inset_offset: f32,
+}
+
+impl Default for ButtonStyle {
+    fn default() -> Self {
+        Self {
+            color: GRAY,
+            inset_color: DARKGRAY,
+            hover_color: DARKGRAY,
+            hover_inset_color: BLACK,
+            pushed_color: GRAY,
+            pushed_inset_color: BLUE,
+            inset_offset: 4.,
+        }
+    }
+}
+
+#[derive(Default)]
+pub enum ButtonType {
+    Push,
+    #[default]
+    Toggle,
+}
+
+pub struct Button {
+    pub style: ButtonStyle,
+    pub shape: ButtonShape,
+    pub center_pos: Vec2,
+    pub button_type: ButtonType,
+    mouse_pos: Option<Vec2>,
+}
+
+impl Button {
+    pub fn new(center_pos: Vec2, button_shape: ButtonShape) -> Self {
+        Self {
+            center_pos,
+            shape: button_shape,
+            style: ButtonStyle::default(),
+            button_type: ButtonType::default(),
+            mouse_pos: None,
+        }
+    }
+
+    pub fn style(mut self, style: ButtonStyle) -> Self {
+        self.style = style;
+        self
+    }
+
+    pub fn button_type(mut self, button_type: ButtonType) -> Self {
+        self.button_type = button_type;
+        self
+    }
+
+    pub fn mouse_pos(mut self, mouse_pos: Vec2) -> Self {
+        self.mouse_pos = Some(mouse_pos);
+        self
+    }
+
+    pub fn draw(&mut self, pushed: &mut bool) {
+        let mouse_pos = self.mouse_pos.unwrap_or_else(|| mouse_position().into());
+        let mut is_hovered = self.shape.intersects(self.center_pos, mouse_pos);
+
+        if is_hovered
+            && (is_mouse_button_pressed(MouseButton::Left)
+                || (matches!(self.button_type, ButtonType::Push)
+                    && is_mouse_button_down(MouseButton::Left)))
+        {
+            is_hovered = false;
+            *pushed = match self.button_type {
+                ButtonType::Push => true,
+                ButtonType::Toggle => !*pushed,
+            };
+        } else {
+            *pushed = match self.button_type {
+                ButtonType::Push => false,
+                ButtonType::Toggle => *pushed,
+            };
+        }
+
+        let (inset_color, color) = match (*pushed, is_hovered) {
+            (true, _) => (self.style.pushed_inset_color, self.style.pushed_color),
+            (false, true) => (self.style.hover_inset_color, self.style.hover_color),
+            (false, false) => (self.style.inset_color, self.style.color),
+        };
+
+        match self.shape {
+            ButtonShape::Circle { radius } => {
+                draw_circle(self.center_pos.x, self.center_pos.y, radius, color);
+                draw_circle(
+                    self.center_pos.x,
+                    self.center_pos.y,
+                    radius - self.style.inset_offset,
+                    inset_color,
+                );
+            }
+            ButtonShape::Rectangle { width, height } => {
+                let draw_pos = vec2(
+                    self.center_pos.x - width / 2.,
+                    self.center_pos.y - height / 2.,
+                );
+                let inset_offset = self.style.inset_offset / 2.;
+                draw_rectangle(draw_pos.x, draw_pos.y, width, height, color);
+                draw_rectangle(
+                    draw_pos.x + inset_offset,
+                    draw_pos.y + inset_offset,
+                    width - inset_offset * 2.,
+                    height - inset_offset * 2.,
+                    inset_color,
+                );
+            }
+        }
+    }
+}
