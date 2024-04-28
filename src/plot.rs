@@ -470,6 +470,26 @@ impl Graph {
             ),
         )
     }
+
+    pub fn world_to_graph(&self, pt: Vec2) -> Vec2 {
+        vec2(
+            map(
+                pt.x,
+                self.world_min_coords.x,
+                self.world_max_coords.x,
+                self.x_range.start,
+                self.x_range.end,
+            ),
+            map(
+                pt.y,
+                self.world_min_coords.y,
+                self.world_max_coords.y,
+                self.y_range.start,
+                self.y_range.end,
+            ),
+        )
+    }
+
     pub fn plot_line_vec(&self, pts: &[Vec2], thickness: f32, color: Color) {
         pts.windows(2).for_each(|slice| {
             let pt_a = self.graph_to_world(slice[0]);
