@@ -56,6 +56,10 @@ impl Animation {
         }
     }
 
+    pub fn filter_mode(&mut self, filter_mode: FilterMode) {
+        self.render_target.texture.set_filter(filter_mode);
+    }
+
     pub fn get_world_mouse(&self) -> Vec2 {
         let mouse: Vec2 = mouse_position().into();
         self.screen_to_world(mouse)
