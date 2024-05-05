@@ -1,3 +1,5 @@
+use crate::DEFAULT_FONT;
+
 use super::map;
 use macroquad::prelude::*;
 use std::ops::Range;
@@ -13,6 +15,7 @@ pub fn draw_text_centered(text: &str, x: f32, y: f32, font_size: u16, color: Col
             font_scale: -1.,
             font_scale_aspect: -1.,
             color,
+            font: DEFAULT_FONT.get(),
             ..Default::default()
         },
     );

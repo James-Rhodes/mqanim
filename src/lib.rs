@@ -1,6 +1,12 @@
+// use std::cell::OnceCell;
+
+use std::sync::OnceLock;
+
 use macroquad::prelude::*;
 pub mod plot;
 pub mod ui;
+
+static DEFAULT_FONT: OnceLock<Font> = OnceLock::new();
 
 enum RenderState {
     CameraRendering,
@@ -42,6 +48,12 @@ impl Animation {
                 a: 1.,
             }
         };
+        let font = load_ttf_font_from_bytes(include_bytes!("./font/Droid Sans Mono.ttf"))
+            .expect("The Font load failed for Droid Sans Mono ttf.");
+
+        DEFAULT_FONT
+            .set(font)
+            .expect("Failed to set the Default font to Droid Sans Mono");
 
         Self {
             render_target,

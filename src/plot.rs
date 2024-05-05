@@ -283,7 +283,7 @@ impl Graph {
     }
 
     fn draw_tick(&self, pos: Vec2, value: f32, orientation: Orientation, style: TickStyle) {
-        let offset = -20.;
+        let offset = -30.;
         let vert_offset = vec2(offset, 0.);
         let hori_offset = vec2(0., offset / 2.);
         let (line_params, label_style) = match (&orientation, style) {
