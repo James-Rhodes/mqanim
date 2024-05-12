@@ -8,17 +8,20 @@ pub mod ui;
 
 static DEFAULT_FONT: OnceLock<Font> = OnceLock::new();
 
+const RESIZE_HYSTERESIS: f32 = 0.5; // 50% window growth or shrink will cause resize
+
 enum RenderState {
     CameraRendering,
     ScreenRendering,
 }
 
 pub struct Animation {
-    pub render_target: RenderTarget,
+    render_target: RenderTarget,
     camera: Camera2D,
-    pub bg_color: Color,
+    bg_color: Color,
     render_state: RenderState,
-    pub draw_size: Vec2,
+    draw_size: Vec2,
+    filter_mode: FilterMode,
     material: Option<Material>,
     width: f32,
     height: f32,
@@ -26,14 +29,14 @@ pub struct Animation {
 }
 
 impl Animation {
-    pub fn new(width: f32, height: f32, bg_color: Option<Color>) -> Self {
+    pub fn new(start_width: f32, start_height: f32, bg_color: Option<Color>) -> Self {
         // Screen dimensions will be:
         //     x: -width/2 -> width/2 (left -> right)
         //     y: -height/2 -> height/2 (bottom -> top)
-        let render_target = render_target(width as u32, height as u32);
+        let render_target = render_target(start_width as u32, start_height as u32);
         render_target.texture.set_filter(FilterMode::Linear);
 
-        let mut camera = Camera2D::from_display_rect(Rect::new(0., 0., width, height));
+        let mut camera = Camera2D::from_display_rect(Rect::new(0., 0., start_width, start_height));
 
         camera.render_target = Some(render_target.clone());
         camera.target = vec2(0., 0.);
@@ -59,16 +62,18 @@ impl Animation {
             render_target,
             camera,
             bg_color,
+            filter_mode: FilterMode::Linear,
             render_state: RenderState::ScreenRendering,
-            draw_size: vec2(width, height),
+            draw_size: vec2(start_width, start_height),
             material: None,
-            width,
-            height,
-            scale: Self::compute_scale(width, height),
+            width: start_width,
+            height: start_height,
+            scale: Self::compute_scale(start_width, start_height),
         }
     }
 
     pub fn filter_mode(&mut self, filter_mode: FilterMode) {
+        self.filter_mode = filter_mode;
         self.render_target.texture.set_filter(filter_mode);
     }
 
@@ -105,6 +110,22 @@ impl Animation {
     }
 
     pub fn set_camera(&mut self) {
+        if self.width > self.draw_size.x * (1. + RESIZE_HYSTERESIS)
+            || self.height > self.draw_size.y * (1. + RESIZE_HYSTERESIS)
+        {
+            self.resize_render_target(
+                self.width * RESIZE_HYSTERESIS,
+                self.height * RESIZE_HYSTERESIS,
+            );
+        } else if self.width <= self.draw_size.x * (1. - RESIZE_HYSTERESIS)
+            || self.height <= self.draw_size.y * (1. - RESIZE_HYSTERESIS)
+        {
+            self.resize_render_target(
+                self.width * 1. / RESIZE_HYSTERESIS,
+                self.height * 1. / RESIZE_HYSTERESIS,
+            );
+        }
+
         set_camera(&self.camera);
         clear_background(self.bg_color);
         self.render_state = RenderState::CameraRendering;
@@ -143,10 +164,35 @@ impl Animation {
                 ..Default::default()
             },
         );
+
+        gl_use_default_material();
+    }
+
+    pub fn scale(&self) -> f32 {
+        self.scale
+    }
+
+    pub fn size(&self) -> Vec2 {
+        vec2(self.width, self.height)
     }
 
     fn compute_scale(width: f32, height: f32) -> f32 {
         f32::min(screen_width() / width, screen_height() / height)
+    }
+
+    fn resize_render_target(&mut self, new_width: f32, new_height: f32) {
+        self.width = new_width;
+        self.height = new_height;
+        let render_target = render_target(new_width as u32, new_height as u32);
+        render_target.texture.set_filter(self.filter_mode);
+
+        let mut camera = Camera2D::from_display_rect(Rect::new(0., 0., new_width, new_height));
+
+        camera.render_target = Some(render_target.clone());
+        camera.target = vec2(0., 0.);
+
+        self.camera = camera;
+        self.render_target = render_target;
     }
 }
 
