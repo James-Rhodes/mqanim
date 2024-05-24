@@ -26,6 +26,7 @@ pub struct Animation {
     width: f32,
     height: f32,
     scale: f32,
+    auto_resize: bool,
 }
 
 impl Animation {
@@ -69,9 +70,13 @@ impl Animation {
             width: start_width,
             height: start_height,
             scale: Self::compute_scale(start_width, start_height),
+            auto_resize: true,
         }
     }
 
+    pub fn disable_auto_resize(&mut self) {
+        self.auto_resize = false;
+    }
     pub fn filter_mode(&mut self, filter_mode: FilterMode) {
         self.filter_mode = filter_mode;
         self.render_target.texture.set_filter(filter_mode);
@@ -110,20 +115,22 @@ impl Animation {
     }
 
     pub fn set_camera(&mut self) {
-        if self.width > self.draw_size.x * (1. + RESIZE_HYSTERESIS)
-            || self.height > self.draw_size.y * (1. + RESIZE_HYSTERESIS)
-        {
-            self.resize_render_target(
-                self.width * RESIZE_HYSTERESIS,
-                self.height * RESIZE_HYSTERESIS,
-            );
-        } else if self.width <= self.draw_size.x * (1. - RESIZE_HYSTERESIS)
-            || self.height <= self.draw_size.y * (1. - RESIZE_HYSTERESIS)
-        {
-            self.resize_render_target(
-                self.width * 1. / RESIZE_HYSTERESIS,
-                self.height * 1. / RESIZE_HYSTERESIS,
-            );
+        if self.auto_resize {
+            if self.width > self.draw_size.x * (1. + RESIZE_HYSTERESIS)
+                || self.height > self.draw_size.y * (1. + RESIZE_HYSTERESIS)
+            {
+                self.resize_render_target(
+                    self.width * RESIZE_HYSTERESIS,
+                    self.height * RESIZE_HYSTERESIS,
+                );
+            } else if self.width <= self.draw_size.x * (1. - RESIZE_HYSTERESIS)
+                || self.height <= self.draw_size.y * (1. - RESIZE_HYSTERESIS)
+            {
+                self.resize_render_target(
+                    self.width * 1. / RESIZE_HYSTERESIS,
+                    self.height * 1. / RESIZE_HYSTERESIS,
+                );
+            }
         }
 
         set_camera(&self.camera);
