@@ -70,12 +70,12 @@ impl Animation {
             width: start_width,
             height: start_height,
             scale: Self::compute_scale(start_width, start_height),
-            auto_resize: true,
+            auto_resize: false,
         }
     }
 
-    pub fn disable_auto_resize(&mut self) {
-        self.auto_resize = false;
+    pub fn enable_auto_resize(&mut self) {
+        self.auto_resize = true;
     }
     pub fn filter_mode(&mut self, filter_mode: FilterMode) {
         self.filter_mode = filter_mode;
