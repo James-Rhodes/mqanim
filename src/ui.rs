@@ -5,7 +5,7 @@ use macroquad::prelude::*;
 use std::ops::Range;
 
 pub fn draw_text_centered(text: &str, x: f32, y: f32, font_size: u16, color: Color) {
-    let text_center = get_text_center(text, None, font_size, 1., 0.);
+    let text_center = get_text_center(text, DEFAULT_FONT.get(), font_size, 1., 0.);
     draw_text_ex(
         text,
         x - text_center.x,
