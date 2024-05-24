@@ -22,7 +22,7 @@ pub struct Animation {
     render_state: RenderState,
     draw_size: Vec2,
     filter_mode: FilterMode,
-    material: Option<Material>,
+    fxaa_material: Option<Material>,
     width: f32,
     height: f32,
     scale: f32,
@@ -66,7 +66,7 @@ impl Animation {
             filter_mode: FilterMode::Linear,
             render_state: RenderState::ScreenRendering,
             draw_size: vec2(start_width, start_height),
-            material: None,
+            fxaa_material: None,
             width: start_width,
             height: start_height,
             scale: Self::compute_scale(start_width, start_height),
@@ -111,7 +111,7 @@ impl Animation {
         )
         .unwrap();
 
-        self.material = Some(material);
+        self.fxaa_material = Some(material);
     }
 
     pub fn set_camera(&mut self) {
@@ -148,7 +148,7 @@ impl Animation {
             panic!("Animation::set_default_camera must be called before you can draw the frame to the screen");
         }
 
-        if let Some(material) = &self.material {
+        if let Some(material) = &self.fxaa_material {
             material.set_uniform("texture_size", self.draw_size);
             gl_use_material(material);
         } else {
