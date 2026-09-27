@@ -25,21 +25,3 @@ On those backends `Animation::enable_fxaa` is ignored, because the multisampled
 texture is already anti-aliased and FXAA would only blur it (text in
 particular). FXAA is still applied on backends without MSAA support
 (WebGL1/GL2).
-
-`cargo run --example screenshot` renders a test scene and saves both the
-animation's internal render target and the final window framebuffer to
-`target/screenshots/` so the output can be inspected for blur.
-
-## Drawing paths
-
-`draw_line` draws each segment as an isolated quad with flat (butt) ends, so a
-polyline built from `draw_line` calls leaves wedge shaped gaps at its corners.
-`draw::draw_path` draws a whole polyline with round joins and round caps
-instead:
-
-```rust
-mqanim::draw::draw_path(&points, 4., PURPLE);
-```
-
-A join polygon is only drawn once per vertex and the number of sides scales
-with the line thickness, so thin paths stay cheap.
