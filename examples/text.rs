@@ -7,6 +7,7 @@ fn window_conf() -> Conf {
     Conf {
         window_title: "Text Example".to_owned(),
         sample_count: 16,
+        high_dpi: true,
         window_width: WINDOW_WIDTH as i32,
         window_height: WINDOW_HEIGHT as i32,
         ..Default::default()

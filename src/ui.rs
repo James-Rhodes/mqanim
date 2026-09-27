@@ -5,20 +5,57 @@ use macroquad::prelude::*;
 use std::ops::Range;
 
 pub fn draw_text_centered(text: &str, x: f32, y: f32, font_size: u16, color: Color) {
-    let text_center = get_text_center(text, DEFAULT_FONT.get(), font_size, 1., 0.);
-    draw_text_ex(
-        text,
-        x - text_center.x,
-        y + text_center.y,
-        TextParams {
-            font_size,
-            font_scale: -1.,
-            font_scale_aspect: -1.,
-            color,
-            font: DEFAULT_FONT.get(),
-            ..Default::default()
-        },
-    );
+    // Rasterize the glyphs at the size they will actually be displayed at so
+    // that they are not scaled (and blurred) by the camera or the DPI scale.
+    // `font_size` stays in world units; `scale` is the world -> screen scale
+    // of the currently active animation.
+    let scale = crate::text_render_scale().max(f32::EPSILON);
+    let raster_font_size = ((font_size as f32) * scale).round().max(1.) as u16;
+    let font_scale = -1. / scale;
+
+    // Glyphs are rasterized at the size they are displayed at, so each glyph
+    // is drawn as a separate quad snapped to the physical pixel grid. Drawing
+    // the string in one call would leave every glyph behind the first one at
+    // a fractional pixel offset (advances are, for example, 7.2px at 12px)
+    // which macroquad would linearly filter into a slight blur. The bundled
+    // font has no kerning, so laying glyphs out by their own advances is exact.
+    let dpi_scale = miniquad::window::dpi_scale();
+    let pixel = 1. / (scale * dpi_scale);
+    let mut buf = [0u8; 4];
+    let advances: Vec<f32> = text
+        .chars()
+        .map(|character| {
+            let glyph = character.encode_utf8(&mut buf);
+            measure_text(glyph, DEFAULT_FONT.get(), raster_font_size, 1. / scale).width
+        })
+        .collect();
+    let total_width: f32 = advances.iter().sum();
+    let text_center = get_text_center(text, DEFAULT_FONT.get(), raster_font_size, 1. / scale, 0.);
+    let mut pen_x = snap_to_pixel(x - total_width / 2., pixel);
+    let pen_y = snap_to_pixel(y + text_center.y, pixel);
+
+    for (character, advance) in text.chars().zip(advances) {
+        let glyph = character.encode_utf8(&mut buf);
+        draw_text_ex(
+            glyph,
+            pen_x,
+            pen_y,
+            TextParams {
+                font_size: raster_font_size,
+                font_scale,
+                font_scale_aspect: -1.,
+                color,
+                font: DEFAULT_FONT.get(),
+                ..Default::default()
+            },
+        );
+        pen_x += advance;
+    }
+}
+
+/// Round a world space coordinate to the nearest physical pixel.
+fn snap_to_pixel(value: f32, physical_pixel: f32) -> f32 {
+    (value / physical_pixel).round() * physical_pixel
 }
 
 #[derive(Copy, Clone)]
