@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::OnceLock;
 
 use macroquad::prelude::*;
+pub mod draw;
 pub mod plot;
 pub mod ui;
 

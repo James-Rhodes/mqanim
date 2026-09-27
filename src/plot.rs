@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use macroquad::prelude::*;
 
-use crate::{map, ui::draw_text_centered};
+use crate::{draw::draw_path, map, ui::draw_text_centered};
 
 #[derive(Copy, Clone)]
 pub struct LabelStyle {
@@ -491,20 +491,17 @@ impl Graph {
     }
 
     pub fn plot_line_vec(&self, pts: &[Vec2], thickness: f32, color: Color) {
-        pts.windows(2).for_each(|slice| {
-            let pt_a = self.graph_to_world(slice[0]);
-            let pt_b = self.graph_to_world(slice[1]);
-            self.plot_line_world(&pt_a, &pt_b, thickness, color);
-        });
+        let world_pts: Vec<Vec2> = pts.iter().map(|pt| self.graph_to_world(*pt)).collect();
+        self.plot_path_world(&world_pts, thickness, color);
     }
 
     pub fn plot_line_xy(&self, x: &[f32], y: &[f32], thickness: f32, color: Color) {
-        x.windows(2).zip(y.windows(2)).for_each(|(xs, ys)| {
-            let pt_a = self.graph_to_world(vec2(xs[0], ys[0]));
-            let pt_b = self.graph_to_world(vec2(xs[1], ys[1]));
-
-            self.plot_line_world(&pt_a, &pt_b, thickness, color);
-        })
+        let world_pts: Vec<Vec2> = x
+            .iter()
+            .zip(y)
+            .map(|(&x, &y)| self.graph_to_world(vec2(x, y)))
+            .collect();
+        self.plot_path_world(&world_pts, thickness, color);
     }
     pub fn plot_pt_vec(&self, pt: &Vec2, radius: f32, color: Color) {
         let pt = self.graph_to_world(*pt);
@@ -523,15 +520,34 @@ impl Graph {
 
         draw_circle(pt.x, pt.y, radius, color);
     }
-    fn plot_line_world(&self, pt_a: &Vec2, pt_b: &Vec2, thickness: f32, color: Color) {
-        if !self.world_pt_in_world_bb(pt_a) && !self.world_pt_in_world_bb(pt_b) {
-            // Neither point is on the graph so bail this iteration
-            return;
-        }
-        // TODO: if a is in the graph but b isn't then clamp b at the nearest intersection point with
-        // the nearest border. Vice versa for b. If both are off then don't draw anything
+    /// Draw the parts of the polyline that are inside the graph with round
+    /// joins. Segments with both endpoints outside the graph are skipped, so
+    /// visible runs are not joined up through the off-screen part.
+    fn plot_path_world(&self, pts: &[Vec2], thickness: f32, color: Color) {
+        let mut visible_run = Vec::with_capacity(pts.len());
 
-        draw_line(pt_a.x, pt_a.y, pt_b.x, pt_b.y, thickness, color);
+        for segment in pts.windows(2) {
+            if !self.world_pt_in_world_bb(&segment[0]) && !self.world_pt_in_world_bb(&segment[1]) {
+                // Neither point is on the graph so bail this iteration
+                if visible_run.len() >= 2 {
+                    draw_path(&visible_run, thickness, color);
+                }
+                visible_run.clear();
+                continue;
+            }
+            // TODO: if one point is in the graph but the other isn't then clamp the outside point
+            // at the nearest intersection point with the nearest border instead of drawing the
+            // whole segment.
+
+            if visible_run.is_empty() {
+                visible_run.push(segment[0]);
+            }
+            visible_run.push(segment[1]);
+        }
+
+        if visible_run.len() >= 2 {
+            draw_path(&visible_run, thickness, color);
+        }
     }
     fn world_pt_in_world_bb(&self, pt: &Vec2) -> bool {
         pt.x >= self.world_min_coords.x
